@@ -1,11 +1,11 @@
 ﻿use palette::rgb::Rgb;
-use crate::{Color, tile};
+use crate::{Color};
 use palette::{Lch, Gradient};
 use rand::{thread_rng, Rng, random};
 use lazy_static::lazy_static;
-use crate::live_tile_api::LiveTileApi;
 use crate::tile::{Tile, LiveTile, LiveTileData};
-use crate::live_tile_instrution::LiveTileInstruction;
+use cgmath::Vector2;
+use crate::world::{LiveTileInstruction, LiveTileApi};
 
 lazy_static! {
     static ref SAND_GRADIENT: Gradient<Lch> = Gradient::new(vec![
@@ -46,19 +46,19 @@ impl SandTile {
     }
 
     pub fn update(&mut self, api: LiveTileApi) -> LiveTileInstruction {
-        if api.get(0, 1) == Tile::Empty {
-            return LiveTileInstruction::Replace(0, 1);
+        if api.get(Vector2::new(0, 1)) == Tile::Empty {
+            return LiveTileInstruction::Replace(Vector2::new(0, 1));
         } else {
             let random_direction = if random() { -1 } else { 1 };
-            if api.get(random_direction, 1) == Tile::Empty {
-                return LiveTileInstruction::Replace(random_direction, 1);
+            if api.get(Vector2::new(random_direction, 1)) == Tile::Empty {
+                return LiveTileInstruction::Replace(Vector2::new(random_direction, 1));
             }
         }
         
-        if let Tile::LiveTile(LiveTile { data: LiveTileData::Water(_), last_frame_updated: _ }) = api.get(0, 1) {
+        if let Tile::LiveTile(LiveTile { data: LiveTileData::Water(_), last_frame_updated: _ }) = api.get(Vector2::new(0, 1)) {
             if self.under_water_ticks > 3 {
                 self.under_water_ticks = 0;
-                return LiveTileInstruction::Switch(0, 1);
+                return LiveTileInstruction::Switch(Vector2::new(0, 1));
             } else {
                 self.under_water_ticks += 1;
             }
@@ -86,11 +86,11 @@ impl WaterTile {
     pub fn update(&mut self, api: LiveTileApi) -> LiveTileInstruction {
         let random_direction = thread_rng().gen_range(-2, 2);
         
-        if api.is_empty(0, 1) { return LiveTileInstruction::Replace(0, 1); } 
-        else if api.is_empty(random_direction, 1) { return LiveTileInstruction::Replace(random_direction, 1); } 
-        else if api.is_empty(-random_direction, 1) { return LiveTileInstruction::Replace(-random_direction, 1); } 
-        else if api.is_empty(random_direction, 0) { return LiveTileInstruction::Replace(random_direction, 0); } 
-        else if api.is_empty(-random_direction, 0) { return LiveTileInstruction::Replace(-random_direction, 0); }
+        if api.is_empty(Vector2::new(0, 1)) { return LiveTileInstruction::Replace(Vector2::new(0, 1)); } 
+        else if api.is_empty(Vector2::new(random_direction, 1)) { return LiveTileInstruction::Replace(Vector2::new(random_direction, 1)); } 
+        else if api.is_empty(Vector2::new(-random_direction, 1)) { return LiveTileInstruction::Replace(Vector2::new(-random_direction, 1)); } 
+        else if api.is_empty(Vector2::new(random_direction, 0)) { return LiveTileInstruction::Replace(Vector2::new(random_direction, 0)); } 
+        else if api.is_empty(Vector2::new(-random_direction, 0)) { return LiveTileInstruction::Replace(Vector2::new(-random_direction, 0)); }
 
         LiveTileInstruction::None
     }
@@ -124,8 +124,8 @@ impl ParticleTile {
         self.offset_wanted.0 += self.velocity.0;
         self.offset_wanted.1 += self.velocity.1;
         
-        if self.velocity.1 >= 0.0 && !api.is_empty(0, 1) {
-            if let Tile::LiveTile(LiveTile { data: LiveTileData::Particle(_), last_frame_updated: _ }) = api.get(0, 1) {
+        if self.velocity.1 >= 0.0 && !api.is_empty(Vector2::new(0, 1)) {
+            if let Tile::LiveTile(LiveTile { data: LiveTileData::Particle(_), last_frame_updated: _ }) = api.get(Vector2::new(0, 1)) {
             } else {
                 return LiveTileInstruction::ReplaceSelfWith(*self.tile);
             }
@@ -138,109 +138,10 @@ impl ParticleTile {
             self.offset_wanted.0 -= a as f32;
             self.offset_wanted.1 -= b as f32;
             
-            if api.is_empty(a, b) {
-                return LiveTileInstruction::Replace(a, b);
+            if api.is_empty(Vector2::new(a, b)) {
+                return LiveTileInstruction::Replace(Vector2::new(a, b));
             }
         }
-        
-
-
-
-        // if  self.offset_wanted.0 > 1.0 {
-        //     if self.offset_wanted.1 > 1.0 {
-        //         // down right
-        //        
-        //         // let a = self.offset_wanted.0.
-        //        
-        //         if api.is_empty(1, 1) {
-        //             self.offset_wanted.0 -= 1.0;
-        //             self.offset_wanted.1 -= 1.0;
-        //             return LiveTileInstruction::Replace(1, 1);
-        //         }
-        //        
-        //     } else if self.offset_wanted.1 < -1.0 {
-        //         // up right
-        //         if api.is_empty(1, -1) {
-        //             self.offset_wanted.0 -= 1.0;
-        //             self.offset_wanted.1 += 1.0;
-        //             return LiveTileInstruction::Replace(1, -1);
-        //         }
-        //        
-        //     }  else {
-        //         // right
-        //         if api.is_empty(1, 0) {
-        //             self.offset_wanted.0 -= 1.0;
-        //             return LiveTileInstruction::Replace(1, 0);
-        //         }
-        //        
-        //     }
-        // } else if self.offset_wanted.0 < -1.0 {
-        //     if self.offset_wanted.1 > 1.0 {
-        //         // down left
-        //         if api.is_empty(-1, 1) {
-        //             self.offset_wanted.0 += 1.0;
-        //             self.offset_wanted.1 -= 1.0;
-        //             return LiveTileInstruction::Replace(-1, 1);
-        //         }
-        //        
-        //     } else if self.offset_wanted.1 < -1.0 {
-        //         // up left
-        //         if api.is_empty(-1, -1) {
-        //             self.offset_wanted.0 += 1.0;
-        //             self.offset_wanted.1 += 1.0;
-        //             return LiveTileInstruction::Replace(-1, -1);
-        //         }
-        //        
-        //     } else {
-        //         // left
-        //         if api.is_empty(-1, 0) {
-        //             self.offset_wanted.0 += 1.0;
-        //             return LiveTileInstruction::Replace(-1, 0);
-        //         }
-        //        
-        //     }
-        // } else {
-        //     if self.offset_wanted.1 > 1.0 {
-        //         // down
-        //         if api.is_empty(0, 1) {
-        //             self.offset_wanted.1 -= 1.0;
-        //             return LiveTileInstruction::Replace(0, 1);
-        //         }
-        //     } else if self.offset_wanted.1 < -1.0 {
-        //         // up
-        //         if api.is_empty(0, -1) {
-        //             self.offset_wanted.1 += 1.0;
-        //             return LiveTileInstruction::Replace(0, -1);
-        //         }
-        //     }
-        // }
-            
-        // }
-        //
-        // if self.offset_wanted.0 >= 1.0 {
-        //     self.offset_wanted.0 -= 1.0;
-        //     if api.is_empty(1, 0) {
-        //         return LiveTileInstruction::Replace(1, 0);
-        //     }
-        // } 
-        // if self.offset_wanted.0 <= -1.0 {
-        //     self.offset_wanted.0 += 1.0;
-        //     if api.is_empty(-1, 0) {
-        //         return LiveTileInstruction::Replace(-1, 0);
-        //     }
-        // } 
-        // if self.offset_wanted.1 >= 1.0 {
-        //     self.offset_wanted.1 -= 1.0;
-        //     if api.is_empty(0, 1) {
-        //         return LiveTileInstruction::Replace(0, 1);
-        //     }
-        // } 
-        // if self.offset_wanted.1 <= -1.0 {
-        //     self.offset_wanted.1 += 1.0;
-        //     if api.is_empty(0, -1) {
-        //         return LiveTileInstruction::Replace(0, -1);
-        //     }
-        // }
 
         LiveTileInstruction::None
     }

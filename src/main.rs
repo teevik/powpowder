@@ -4,15 +4,13 @@ use winit::event::{Event, VirtualKeyCode};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit_input_helper::WinitInputHelper;
 use std::time::Instant;
-use crate::world::{World, TilePosition};
+use crate::world::{World};
 use crate::tile::{Tile, StaticTile, LiveTile, LiveTileData};
-use crate::live_tiles::{SandTile, WaterTile, ParticleTile};
-use rand::{thread_rng, Rng};
+use crate::live_tiles::{SandTile, WaterTile};
 use lazy_static::lazy_static;
+use cgmath::Vector2;
 
 mod world;
-mod live_tile_instrution;
-mod live_tile_api;
 mod live_tiles;
 mod tile;
 
@@ -68,7 +66,7 @@ fn main() -> Result<(), Error> {
                     let mx_i = ((mx / w) * (world_width as f32)).round() as isize;
                     let my_i = ((my / h) * (world_height as f32)).round() as isize;
 
-                    TilePosition { x: mx_i as u32, y: my_i as u32 }
+                    Vector2::new(mx_i as u32, my_i as u32)
                 });
 
             if input.mouse_held(1) {
@@ -78,7 +76,7 @@ fn main() -> Result<(), Error> {
                             let nx = mouse_position.x + x - 1;
                             let ny = mouse_position.y + y - 1;
 
-                            world.set_tile(TilePosition::new(nx, ny), Tile::LiveTile(LiveTile::new(LiveTileData::Sand(SandTile::new()))));
+                            world.set_tile(Vector2::new(nx, ny), Tile::LiveTile(LiveTile::new(LiveTileData::Sand(SandTile::new()))));
                         }
                     }
                 }
@@ -89,7 +87,7 @@ fn main() -> Result<(), Error> {
                             let nx = mouse_position.x + x - 1;
                             let ny = mouse_position.y + y - 1;
 
-                            world.set_tile(TilePosition::new(nx, ny), Tile::StaticTile(StaticTile::new([48, 47, 43])));
+                            world.set_tile(Vector2::new(nx, ny), Tile::StaticTile(StaticTile::new([48, 47, 43])));
                         }
                     }
                 }
@@ -104,19 +102,19 @@ fn main() -> Result<(), Error> {
                                 static ref a: Tile = Tile::LiveTile(LiveTile::new(LiveTileData::Water(WaterTile::new())));
                             }
 
-                            world.set_tile(
-                                TilePosition::new(nx, ny), 
-                                Tile::LiveTile(
-                                    LiveTile::new(
-                                        LiveTileData::Particle(ParticleTile::new(
-                                            &a,
-                                            (thread_rng().gen_range(-1.0, 1.0), thread_rng().gen_range(-1.0, 1.0))
-                                        ))
-                                    )
-                                )
-                            );
+                            // world.set_tile(
+                            //     TilePosition::new(nx, ny), 
+                            //     Tile::LiveTile(
+                            //         LiveTile::new(
+                            //             LiveTileData::Particle(ParticleTile::new(
+                            //                 &a,
+                            //                 (thread_rng().gen_range(-1.0, 1.0), thread_rng().gen_range(-1.0, 1.0))
+                            //             ))
+                            //         )
+                            //     )
+                            // );
 
-                            // world.set_tile(TilePosition::new(nx, ny), Tile::LiveTile(LiveTile::new(LiveTileData::Water(WaterTile::new()))));
+                            world.set_tile(Vector2::new(nx, ny), Tile::LiveTile(LiveTile::new(LiveTileData::Water(WaterTile::new()))));
                         }
                     }
                 }

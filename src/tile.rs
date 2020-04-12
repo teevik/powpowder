@@ -1,7 +1,6 @@
 ﻿use crate::{Color, BACKGROUND_COLOR};
-use crate::live_tile_api::LiveTileApi;
 use crate::live_tiles::{SandTile, WaterTile, ParticleTile};
-use crate::live_tile_instrution::LiveTileInstruction;
+use crate::world::{LiveTileInstruction, LiveTileApi};
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct LiveTile {
@@ -21,24 +20,21 @@ impl LiveTile {
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum LiveTileData {
     Sand(SandTile),
-    Water(WaterTile),
-    Particle(ParticleTile)
+    Water(WaterTile)
 }
 
 impl LiveTileData {
     pub fn get_color(self) -> Color {
         match self {
             LiveTileData::Sand(sand_tile) => sand_tile.color,
-            LiveTileData::Water(water_tile) => water_tile.color,
-            LiveTileData::Particle(particle_tile) =>particle_tile.color,
+            LiveTileData::Water(water_tile) => water_tile.color
         }
     }
 
     pub fn update(&mut self, api: LiveTileApi) -> LiveTileInstruction {
         match self {
             LiveTileData::Sand(sand_tile) => sand_tile.update(api),
-            LiveTileData::Water(water_tile) => water_tile.update(api),
-            LiveTileData::Particle(particle_tile) => particle_tile.update(api)
+            LiveTileData::Water(water_tile) => water_tile.update(api)
         }
     }
 }
