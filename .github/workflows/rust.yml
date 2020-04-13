@@ -20,3 +20,4 @@ jobs:
       with:
         # Directory containing files to upload
         path: target/release/
+        file: pixels-test
