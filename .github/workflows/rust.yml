@@ -1,4 +1,4 @@
-name: Rust
+name: Create Release
 
 on:
   push:
@@ -14,4 +14,9 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Build
-      run: cargo build --verbose
+      run: cargo build --verbose --release
+    - name: Upload artifact
+      uses: actions/upload-artifact@v1.0.0
+      with:
+        # Directory containing files to upload
+        path: target/release/
