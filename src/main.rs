@@ -1,3 +1,5 @@
+#![windows_subsystem = "windows"]
+
 use pixels::{Error, Pixels, SurfaceTexture};
 use winit::dpi::{LogicalPosition, LogicalSize, PhysicalSize};
 use winit::event::{Event, VirtualKeyCode};
@@ -5,14 +7,18 @@ use winit::event_loop::{ControlFlow, EventLoop};
 use winit_input_helper::WinitInputHelper;
 use std::time::Instant;
 use crate::world::{World};
-use crate::tile::{Tile, StaticTile, LiveTile, LiveTileData};
+use crate::tile::{Tile, StaticTile, LiveTile, LiveTileState};
 use crate::live_tiles::{SandTile, WaterTile};
 use lazy_static::lazy_static;
 use cgmath::Vector2;
+use crate::particle::Particle;
+use rand::{thread_rng, Rng};
+use crate::tile::LiveTileState::Water;
 
 mod world;
 mod live_tiles;
 mod tile;
+mod particle;
 
 type Color = [u8; 3];
 
@@ -34,21 +40,33 @@ fn main() -> Result<(), Error> {
     let mut world = World::new(BACKGROUND_COLOR, world_width, world_height);
     let mut current_frame: u64 = 0;
     let mut last_time_updated = Instant::now();
+
+    #[derive(PartialEq)]
+    enum SelectedItem {
+        Stone,
+        Sand,
+        Water
+    }
+    
+    let mut selected_item: SelectedItem = SelectedItem::Stone;
     
     event_loop.run(move |event, _, control_flow| {
         if let Event::RedrawRequested(_) = event {
             let frame = pixels.get_frame();
-            frame.copy_from_slice(&world.frame);
+            
+            world.render(frame);
+            
             pixels.render();
-        }
 
+        }
+        
         if input.update(event) {
             current_frame += 1;
 
             let current_time = Instant::now();
             let frame_time = current_time.duration_since(last_time_updated).as_nanos();
             last_time_updated = current_time;
-    
+        
             println!("{:?}", 1000000000/frame_time);
 
             world.update(current_frame);
@@ -57,64 +75,89 @@ fn main() -> Result<(), Error> {
                 *control_flow = ControlFlow::Exit;
                 return;
             }
+            
+            if input.key_pressed(VirtualKeyCode::Key1) {
+                selected_item = SelectedItem::Stone
+            } else if input.key_pressed(VirtualKeyCode::Key2) {
+                selected_item = SelectedItem::Sand
+            } else if input.key_pressed(VirtualKeyCode::Key3) {
+                selected_item = SelectedItem::Water
+            }
 
             let mouse_position =  input
                 .mouse()
-                .map(|(mx, my)| {
+                .and_then(|(mx, my)| {
                     let dpx = scale_factor as f32;
                     let (w, h) = (physical_width as f32 / dpx, physical_height as f32 / dpx);
                     let mx_i = ((mx / w) * (world_width as f32)).round() as isize;
                     let my_i = ((my / h) * (world_height as f32)).round() as isize;
 
-                    Vector2::new(mx_i as u32, my_i as u32)
+                    let mouse_position: Option<Vector2<u32>> = Vector2::new(mx_i, my_i).cast();
+                    mouse_position
                 });
 
-            if input.mouse_held(1) {
+            if input.mouse_held(0) && selected_item == SelectedItem::Sand {
                 if let Option::Some(mouse_position) = mouse_position {
-                    for x in 0..3 {
-                        for y in 0..3 {
-                            let nx = mouse_position.x + x - 1;
-                            let ny = mouse_position.y + y - 1;
-
-                            world.set_tile(Vector2::new(nx, ny), Tile::LiveTile(LiveTile::new(LiveTileData::Sand(SandTile::new()))));
-                        }
+                    for _ in 0..10 {
+                        world.add_particle(
+                            Particle::new(
+                                Tile::LiveTile(
+                                    LiveTile::new(
+                                        LiveTileState::Sand(SandTile::new())
+                                    )
+                                ),
+                                mouse_position.cast().unwrap(),
+                                Vector2::new(thread_rng().gen_range(-0.2, 0.2), thread_rng().gen_range(-0.2, 0.2))
+                            )
+                        );
                     }
                 }
-            } else if input.mouse_held(0) {
-                if let Option::Some(mouse_position) = mouse_position {
-                    for x in 0..3 {
-                        for y in 0..3 {
-                            let nx = mouse_position.x + x - 1;
-                            let ny = mouse_position.y + y - 1;
-
-                            world.set_tile(Vector2::new(nx, ny), Tile::StaticTile(StaticTile::new([48, 47, 43])));
-                        }
-                    }
-                }
-            } else if input.mouse_held(2) {
+            } else if input.mouse_held(0) && selected_item == SelectedItem::Stone {
                 if let Option::Some(mouse_position) = mouse_position {
                     for x in 0..3 {
                         for y in 0..3 {
                             let nx = mouse_position.x + x - 1;
                             let ny = mouse_position.y + y - 1;
                             
-                            lazy_static! {
-                                static ref a: Tile = Tile::LiveTile(LiveTile::new(LiveTileData::Water(WaterTile::new())));
+                            if nx >= world.world_width || ny >= world.world_height {
+                                continue;
                             }
 
-                            // world.set_tile(
-                            //     TilePosition::new(nx, ny), 
-                            //     Tile::LiveTile(
-                            //         LiveTile::new(
-                            //             LiveTileData::Particle(ParticleTile::new(
-                            //                 &a,
-                            //                 (thread_rng().gen_range(-1.0, 1.0), thread_rng().gen_range(-1.0, 1.0))
-                            //             ))
-                            //         )
-                            //     )
-                            // );
+                            world.set_tile(Vector2::new(nx, ny), Tile::StaticTile(StaticTile::new([48, 47, 43])));
+                        }
+                    }
+                }
+            } else if input.mouse_held(0) && selected_item == SelectedItem::Water {
+                if let Option::Some(mouse_position) = mouse_position {                    
+                    
+                    for _ in 0..10 {
+                        world.add_particle(
+                            Particle::new(
+                                Tile::LiveTile(
+                                    LiveTile::new(
+                                        LiveTileState::Water(WaterTile::new())
+                                    )
+                                ), 
+                                mouse_position.cast().unwrap(), 
+                                Vector2::new(thread_rng().gen_range(-0.3, 0.3), thread_rng().gen_range(-0.3, 0.3))
+                            )
+                        );
+                    }
+                }
+            }
+            
+            if input.mouse_held(1) {
+                if let Option::Some(mouse_position) = mouse_position {
+                    for x in 0..5 {
+                        for y in 0..5 {
+                            let nx = mouse_position.x + x - 2;
+                            let ny = mouse_position.y + y - 2;
 
-                            world.set_tile(Vector2::new(nx, ny), Tile::LiveTile(LiveTile::new(LiveTileData::Water(WaterTile::new()))));
+                            if nx >= world.world_width || ny >= world.world_height {
+                                continue;
+                            }
+
+                            world.set_tile(Vector2::new(nx, ny), Tile::Empty);
                         }
                     }
                 }

@@ -978,6 +978,7 @@ dependencies = [
  "palette",
  "pixels",
  "rand 0.7.3",
+ "retain_mut",
  "winit",
  "winit_input_helper",
 ]
@@ -1284,6 +1285,12 @@ dependencies = [
  "slab",
  "smallvec 0.6.13",
 ]
+
+[[package]]
+name = "retain_mut"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e005d658ad26eacc2b6c506dfde519f4e277e328d0eb3379ca61647d70a8f531"
 
 [[package]]
 name = "rustc-serialize"
