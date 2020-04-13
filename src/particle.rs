@@ -25,11 +25,15 @@ impl Particle {
         }
     }
     
-    pub fn update(&mut self, tiles: &Vec<Tile>, world_width: u32, world_height: u32) -> ParticleInstructions {
-        self.velocity.y += 0.01;
-        self.position.add_assign_element_wise(self.velocity);
+    pub fn update(&mut self, delta_time: f32, tiles: &Vec<Tile>, world_width: u32, world_height: u32) -> ParticleInstructions {
+        self.velocity.y += 200.0 * delta_time;
+        self.position.add_assign_element_wise(self.velocity * delta_time);
         
+        if self.position.x < 0.0 { self.position.x = 0.0; }
+        if self.position.y < 0.0 { self.position.y = 0.0; }
+
         let rounded_position: Vector2<u32> = self.position.cast().unwrap();
+        
         
         let api = LiveTileApi {
             tile_position: rounded_position,

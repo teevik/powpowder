@@ -83,7 +83,7 @@ impl<'a> LiveTileApi<'a> {
         let new_tile_position = tile_offset.add_element_wise(self.tile_position.cast().unwrap());
 
         if new_tile_position.x < 0 || new_tile_position.x >= self.world_width as i32 || new_tile_position.y < 0 || new_tile_position.y >= self.world_height as i32 {
-            return Tile::StaticTile(StaticTile::new([255, 0, 0]));
+            return Tile::StaticTile(StaticTile::new((255, 0, 0).into()));
         }
 
         let new_tile_position: Vector2<u32> = new_tile_position.cast().unwrap();

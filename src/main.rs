@@ -9,20 +9,52 @@ use std::time::Instant;
 use crate::world::{World};
 use crate::tile::{Tile, StaticTile, LiveTile, LiveTileState};
 use crate::live_tiles::{SandTile, WaterTile};
-use lazy_static::lazy_static;
 use cgmath::Vector2;
 use crate::particle::Particle;
 use rand::{thread_rng, Rng};
-use crate::tile::LiveTileState::Water;
+use palette::rgb::Rgb;
 
 mod world;
 mod live_tiles;
 mod tile;
 mod particle;
 
-type Color = [u8; 3];
+#[derive(Copy, Clone, Debug, PartialEq)]
+pub struct Color {
+    r: u8,
+    g: u8,
+    b: u8
+}
 
-const BACKGROUND_COLOR: Color = [234, 231, 217];
+impl Color {
+    pub fn new(r: u8, g: u8, b: u8) -> Self {
+        Self {
+            r,
+            g,
+            b
+        }
+    }
+}
+
+impl From<Rgb> for Color {
+    fn from(rgb_color: Rgb) -> Color {
+        let (r, g, b) = rgb_color.into();
+        let r: u8 = (r * 255.0) as u8;
+        let g: u8 = (g * 255.0) as u8;
+        let b: u8 = (b * 255.0) as u8;
+
+        Color::new(r, g, b)
+    }
+}
+
+impl From<(u8, u8, u8)> for Color {    
+    fn from(rgb_color: (u8, u8, u8)) -> Color {
+        let (r, g, b) = rgb_color;
+        Color::new(r, g, b)
+    }
+}
+
+const BACKGROUND_COLOR: Color = Color { r: 234, g: 231, b: 217 };
 
 fn main() -> Result<(), Error> {
     let event_loop = EventLoop::new();
@@ -32,7 +64,7 @@ fn main() -> Result<(), Error> {
     let world_height = 300;
     
     let (window, surface, mut physical_width, mut physical_height, mut scale_factor) =
-        create_window("pixels test", &event_loop, world_width, world_height);
+        create_window("Powpowder", &event_loop, world_width, world_height);
 
     let surface_texture = SurfaceTexture::new(physical_width, physical_height, surface);
 
@@ -64,12 +96,12 @@ fn main() -> Result<(), Error> {
             current_frame += 1;
 
             let current_time = Instant::now();
-            let frame_time = current_time.duration_since(last_time_updated).as_nanos();
+            let delta_time = current_time.duration_since(last_time_updated).as_secs_f32();
             last_time_updated = current_time;
-        
-            println!("{:?}", 1000000000/frame_time);
+            
+            println!("FPS: {:?}", 1.0/ delta_time);
 
-            world.update(current_frame);
+            world.update(delta_time, current_frame);
             
             if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
                 *control_flow = ControlFlow::Exit;
@@ -107,7 +139,23 @@ fn main() -> Result<(), Error> {
                                     )
                                 ),
                                 mouse_position.cast().unwrap(),
-                                Vector2::new(thread_rng().gen_range(-0.2, 0.2), thread_rng().gen_range(-0.2, 0.2))
+                                Vector2::new(thread_rng().gen_range(-30.0, 30.0), thread_rng().gen_range(-30.0, 30.0))
+                            )
+                        );
+                    }
+                }
+            } else if input.mouse_held(0) && selected_item == SelectedItem::Water {
+                if let Option::Some(mouse_position) = mouse_position {
+                    for _ in 0..10 {
+                        world.add_particle(
+                            Particle::new(
+                                Tile::LiveTile(
+                                    LiveTile::new(
+                                        LiveTileState::Water(WaterTile::new())
+                                    )
+                                ),
+                                mouse_position.cast().unwrap(),
+                                Vector2::new(thread_rng().gen_range(-30.0, 30.0), thread_rng().gen_range(-30.0, 30.0))
                             )
                         );
                     }
@@ -118,30 +166,13 @@ fn main() -> Result<(), Error> {
                         for y in 0..3 {
                             let nx = mouse_position.x + x - 1;
                             let ny = mouse_position.y + y - 1;
-                            
+
                             if nx >= world.world_width || ny >= world.world_height {
                                 continue;
                             }
 
-                            world.set_tile(Vector2::new(nx, ny), Tile::StaticTile(StaticTile::new([48, 47, 43])));
+                            world.set_tile(Vector2::new(nx, ny), Tile::StaticTile(StaticTile::new((48, 47, 43).into())));
                         }
-                    }
-                }
-            } else if input.mouse_held(0) && selected_item == SelectedItem::Water {
-                if let Option::Some(mouse_position) = mouse_position {                    
-                    
-                    for _ in 0..10 {
-                        world.add_particle(
-                            Particle::new(
-                                Tile::LiveTile(
-                                    LiveTile::new(
-                                        LiveTileState::Water(WaterTile::new())
-                                    )
-                                ), 
-                                mouse_position.cast().unwrap(), 
-                                Vector2::new(thread_rng().gen_range(-0.3, 0.3), thread_rng().gen_range(-0.3, 0.3))
-                            )
-                        );
                     }
                 }
             }

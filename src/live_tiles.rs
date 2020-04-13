@@ -5,6 +5,7 @@ use rand::{thread_rng, Rng, random};
 use lazy_static::lazy_static;
 use crate::tile::{Tile, LiveTile, LiveTileState, LiveTileApi, LiveTileInstruction};
 use cgmath::Vector2;
+use palette::encoding::Srgb;
 
 lazy_static! {
     static ref SAND_GRADIENT: Gradient<Lch> = Gradient::new(vec![
@@ -16,15 +17,6 @@ lazy_static! {
         Lch::new(65.0, 37.0, 249.0),
         Lch::new(70.0, 37.0, 249.0)
     ]);
-}
-
-fn color_from_rgb(color: Rgb) -> Color {
-    let (r, g, b) = color.into();
-    let r: u8 = (r * 255.0) as u8;
-    let g: u8 = (g * 255.0) as u8;
-    let b: u8 = (b * 255.0) as u8;
-
-    [r, g, b]
 }
 
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -39,7 +31,7 @@ impl SandTile {
         let color: Rgb = color.into();
         
         SandTile {
-            color: color_from_rgb(color),
+            color: color.into(),
             under_water_ticks: 0
         }
     }
@@ -79,7 +71,7 @@ impl WaterTile {
         let color: Rgb = color.into();
 
         WaterTile {
-            color: color_from_rgb(color),
+            color: color.into(),
             frames_since_color_change: 0
         }
     }
@@ -90,7 +82,8 @@ impl WaterTile {
         self.frames_since_color_change += 1;
         if self.frames_since_color_change >= 45 {
             let color: Lch = WATER_GRADIENT.get(thread_rng().gen_range(0.0, 1.0));
-            self.color = color_from_rgb(color.into());
+            let color: Rgb = color.into();
+            self.color = color.into();
             self.frames_since_color_change = 0;
         }
 

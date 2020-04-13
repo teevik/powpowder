@@ -21,9 +21,9 @@ impl World {
         frame.resize(total_amount_of_tiles * 4, 0);
 
         for chunk in frame.chunks_exact_mut(4) {
-            chunk[0] = initial_color[0];
-            chunk[1] = initial_color[1];
-            chunk[2] = initial_color[2];
+            chunk[0] = initial_color.r;
+            chunk[1] = initial_color.g;
+            chunk[2] = initial_color.b;
             chunk[3] = 255;
         }
 
@@ -45,9 +45,9 @@ impl World {
         self.tiles[tile_index] = tile;
         let color = tile.get_color();
 
-        self.frame[(tile_index * 4) + 0] = color[0];
-        self.frame[(tile_index * 4) + 1] = color[1];
-        self.frame[(tile_index * 4) + 2] = color[2];
+        self.frame[(tile_index * 4) + 0] = color.r;
+        self.frame[(tile_index * 4) + 1] = color.g;
+        self.frame[(tile_index * 4) + 2] = color.b;
         self.frame[(tile_index * 4) + 3] = 255;
     }
 
@@ -60,7 +60,7 @@ impl World {
         self.particles.push(particle);
     }
 
-    pub fn update(&mut self, current_frame: u64) {
+    pub fn update(&mut self, delta_time: f32, current_frame: u64) {
         for x in 0..self.world_width {
             for y in 0..self.world_height {
                 let tile_position = Vector2::new(x, y);
@@ -124,7 +124,7 @@ impl World {
         for i in (0..self.particles.len()).rev() {
             let particle = &mut self.particles[i];
             
-            let particle_instructions = particle.update(tiles, world_width, world_height);
+            let particle_instructions = particle.update(delta_time, tiles, world_width, world_height);
             
             match particle_instructions {
                 ParticleInstructions::None => {},
@@ -160,9 +160,9 @@ impl World {
             let position: Vector2<u32> = position.cast().unwrap();
             let frame_index = (position.x + position.y * world_width) as usize;
 
-            frame[frame_index * 4 + 0] = color[0];
-            frame[frame_index * 4 + 1] = color[1];
-            frame[frame_index * 4 + 2] = color[2];
+            frame[frame_index * 4 + 0] = color.r;
+            frame[frame_index * 4 + 1] = color.g;
+            frame[frame_index * 4 + 2] = color.b;
             frame[frame_index * 4 + 3] = 255;
             
             true
