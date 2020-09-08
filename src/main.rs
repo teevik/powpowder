@@ -9,15 +9,18 @@ use std::time::Instant;
 use crate::world::{World};
 use crate::tile::{Tile, StaticTile, LiveTile, LiveTileState};
 use crate::live_tiles::{SandTile, WaterTile};
-use cgmath::Vector2;
+use crate::gui::Gui;
 use crate::particle::Particle;
+use cgmath::Vector2;
 use rand::{thread_rng, Rng};
 use palette::rgb::Rgb;
+use log::error;
 
 mod world;
 mod live_tiles;
 mod tile;
 mod particle;
+mod gui;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Color {
@@ -63,15 +66,20 @@ fn main() -> Result<(), Error> {
     let world_width = 400;
     let world_height = 300;
     
-    let (window, surface, mut physical_width, mut physical_height, mut scale_factor) =
+    let (window, mut physical_width, mut physical_height, mut scale_factor) =
         create_window("Powpowder", &event_loop, world_width, world_height);
 
-    let surface_texture = SurfaceTexture::new(physical_width, physical_height, surface);
 
-    let mut pixels = Pixels::new(world_width, world_height, surface_texture)?;
+    let mut pixels = { 
+        let surface_texture = SurfaceTexture::new(physical_width, physical_height, &window);
+        Pixels::new(world_width, world_height, surface_texture)? 
+    };
+    
     let mut world = World::new(BACKGROUND_COLOR, world_width, world_height);
     let mut current_frame: u64 = 0;
     let mut last_time_updated = Instant::now();
+    
+    let mut gui = Gui::new(&window, &pixels);
 
     #[derive(PartialEq)]
     enum SelectedItem {
@@ -84,14 +92,34 @@ fn main() -> Result<(), Error> {
     
     event_loop.run(move |event, _, control_flow| {
         if let Event::RedrawRequested(_) = event {
-            let frame = pixels.get_frame();
             
-            world.render(frame);
-            
-            pixels.render();
+            world.render(pixels.get_frame());
 
+            gui.prepare(&window).expect("gui.prepare() failed");
+
+            // pixels.render();
+
+            let render_result = pixels.render_with(|encoder, render_target, context| {
+                // Render the world texture
+                context.scaling_renderer.render(encoder, render_target);
+
+                // Render Dear ImGui
+                gui.render(&window, encoder, render_target, context)
+                    .expect("gui.render() failed");
+            });
+
+            if render_result
+                .map_err(|e| error!("pixels.render() failed: {}", e))
+                .is_err()
+            {
+                *control_flow = ControlFlow::Exit;
+                return;
+            }
         }
-        
+
+        gui.platform
+            .handle_event(gui.imgui.io_mut(), &window, &event);
+
         if input.update(event) {
             current_frame += 1;
 
@@ -214,7 +242,7 @@ fn create_window(
     event_loop: &EventLoop<()>,
     world_width: u32,
     world_height: u32
-) -> (winit::window::Window, pixels::wgpu::Surface, u32, u32, f64) {
+) -> (winit::window::Window, u32, u32, f64) {
     // Create a hidden window so we can estimate a good default window size
     let window = winit::window::WindowBuilder::new()
         .with_visible(false)
@@ -247,12 +275,12 @@ fn create_window(
     window.set_outer_position(center);
     window.set_visible(true);
 
-    let surface = pixels::wgpu::Surface::create(&window);
+    // let surface = pixels::wgpu::Surface::create(&window);
     let size: PhysicalSize<f64> = default_size.to_physical(scale_factor);
 
     (
         window,
-        surface,
+        // surface,
         size.width.round() as u32,
         size.height.round() as u32,
         scale_factor,
