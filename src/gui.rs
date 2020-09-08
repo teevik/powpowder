@@ -1,5 +1,7 @@
 ﻿use pixels::{raw_window_handle::HasRawWindowHandle, wgpu, PixelsContext};
 use std::time::Instant;
+use imgui::*;
+use crate::SelectedMaterial;
 
 /// Manages all state required for rendering Dear ImGui over `Pixels`.
 pub(crate) struct Gui {
@@ -9,7 +11,7 @@ pub(crate) struct Gui {
 
     last_frame: Instant,
     last_cursor: Option<imgui::MouseCursor>,
-    about_open: bool,
+    selected_material: SelectedMaterial,
 }
 
 impl Gui {
@@ -65,7 +67,7 @@ impl Gui {
 
             last_frame: Instant::now(),
             last_cursor: None,
-            about_open: true,
+            selected_material: SelectedMaterial::Stone
         }
     }
 
@@ -98,8 +100,22 @@ impl Gui {
         }
 
         // Draw windows and GUI elements here
-        ui.show_about_window(&mut self.about_open);
-
+        // ui.show_about_window(&mut self.about_open);
+        // ui.begin_group().end(&ui);
+        
+        // ui.show_demo_window(&mut true);
+        ui.radio_button(im_str!("Stone"), &mut self.selected_material, SelectedMaterial::Stone);
+        ui.radio_button(im_str!("Sand"), &mut self.selected_material, SelectedMaterial::Sand);
+        ui.radio_button(im_str!("Water"), &mut self.selected_material, SelectedMaterial::Water);
+        
+        // let w = Window::new(im_str!("Aaaa"))
+        //     .position([20.0, 20.0], Condition::Appearing)
+        //     .size([700.0, 500.0], Condition::Appearing)
+        //     .build(&ui, || {
+        //         // ui. 
+        //     });
+        // 
+        
         // Render Dear ImGui with WGPU
         let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             color_attachments: &[wgpu::RenderPassColorAttachmentDescriptor {
@@ -115,6 +131,10 @@ impl Gui {
 
         self.renderer
             .render(ui.render(), &context.queue, &context.device, &mut rpass)
+    }
+    
+    pub fn get_selected_material(&self) -> SelectedMaterial {
+        self.selected_material
     }
 }
 

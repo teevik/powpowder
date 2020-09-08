@@ -37,7 +37,9 @@ impl SandTile {
     }
 
     pub fn update(&mut self, api: LiveTileApi) -> LiveTileInstruction {
-        if api.get(Vector2::new(0, 1)) == Tile::Empty {
+        let tile_below = api.get(Vector2::new(0, 1));
+        
+        if tile_below == Tile::Empty {
             return LiveTileInstruction::Replace(Vector2::new(0, 1));
         } else {
             let random_direction = if random() { -1 } else { 1 };
@@ -52,6 +54,17 @@ impl SandTile {
                 return LiveTileInstruction::Switch(Vector2::new(0, 1));
             } else {
                 self.under_water_ticks += 1;
+            }
+        } else {
+            let random_direction = if random() { -1 } else { 1 };
+            
+            if let Tile::LiveTile(LiveTile { state: LiveTileState::Water(_), last_frame_updated: _ }) = api.get(Vector2::new(random_direction, 1)) {
+                if self.under_water_ticks > 3 {
+                    self.under_water_ticks = 0;
+                    return LiveTileInstruction::Switch(Vector2::new(random_direction, 1));
+                } else {
+                    self.under_water_ticks += 1;
+                }
             }
         }
 

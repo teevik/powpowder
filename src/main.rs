@@ -22,6 +22,13 @@ mod tile;
 mod particle;
 mod gui;
 
+#[derive(PartialEq, Copy, Clone)]
+pub enum SelectedMaterial {
+    Stone,
+    Sand,
+    Water
+}
+
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct Color {
     r: u8,
@@ -80,19 +87,9 @@ fn main() -> Result<(), Error> {
     let mut last_time_updated = Instant::now();
     
     let mut gui = Gui::new(&window, &pixels);
-
-    #[derive(PartialEq)]
-    enum SelectedItem {
-        Stone,
-        Sand,
-        Water
-    }
-    
-    let mut selected_item: SelectedItem = SelectedItem::Stone;
     
     event_loop.run(move |event, _, control_flow| {
         if let Event::RedrawRequested(_) = event {
-            
             world.render(pixels.get_frame());
 
             gui.prepare(&window).expect("gui.prepare() failed");
@@ -136,14 +133,8 @@ fn main() -> Result<(), Error> {
                 return;
             }
             
-            if input.key_pressed(VirtualKeyCode::Key1) {
-                selected_item = SelectedItem::Stone
-            } else if input.key_pressed(VirtualKeyCode::Key2) {
-                selected_item = SelectedItem::Sand
-            } else if input.key_pressed(VirtualKeyCode::Key3) {
-                selected_item = SelectedItem::Water
-            }
-
+            let selected_material = gui.get_selected_material();
+            
             let mouse_position =  input
                 .mouse()
                 .and_then(|(mx, my)| {
@@ -156,7 +147,7 @@ fn main() -> Result<(), Error> {
                     mouse_position
                 });
 
-            if input.mouse_held(0) && selected_item == SelectedItem::Sand {
+            if input.mouse_held(0) && selected_material == SelectedMaterial::Sand {
                 if let Option::Some(mouse_position) = mouse_position {
                     for _ in 0..10 {
                         world.add_particle(
@@ -172,7 +163,7 @@ fn main() -> Result<(), Error> {
                         );
                     }
                 }
-            } else if input.mouse_held(0) && selected_item == SelectedItem::Water {
+            } else if input.mouse_held(0) && selected_material == SelectedMaterial::Water {
                 if let Option::Some(mouse_position) = mouse_position {
                     for _ in 0..10 {
                         world.add_particle(
@@ -188,7 +179,7 @@ fn main() -> Result<(), Error> {
                         );
                     }
                 }
-            } else if input.mouse_held(0) && selected_item == SelectedItem::Stone {
+            } else if input.mouse_held(0) && selected_material == SelectedMaterial::Stone {
                 if let Option::Some(mouse_position) = mouse_position {
                     for x in 0..3 {
                         for y in 0..3 {
